@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Prisma generated client -- do not lint generated code
+    "src/generated/**",
+    // Prisma config is a Node.js script, not a Next.js module
+    "prisma.config.ts",
+    "prisma/seed.ts",
   ]),
 ]);
 
