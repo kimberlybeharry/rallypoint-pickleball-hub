@@ -1,6 +1,7 @@
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/db';
+import AdminCancelBookingButton from './_components/AdminCancelBookingButton';
 
 export default async function AdminPage() {
   const session = await auth();
@@ -98,17 +99,20 @@ export default async function AdminPage() {
                       {new Date(b.date).toLocaleDateString('en-TT')}
                     </p>
                   </div>
-                  <span
-                    className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ml-2 ${
-                      b.status === 'CONFIRMED'
-                        ? 'bg-green-100 text-green-700'
-                        : b.status === 'CANCELLED'
-                          ? 'bg-red-100 text-red-600'
-                          : 'bg-gray-100 text-gray-500'
-                    }`}
-                  >
-                    {b.status}
-                  </span>
+                  <div className="flex items-center gap-2 shrink-0 ml-2">
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                        b.status === 'CONFIRMED'
+                          ? 'bg-green-100 text-green-700'
+                          : b.status === 'CANCELLED'
+                            ? 'bg-red-100 text-red-600'
+                            : 'bg-gray-100 text-gray-500'
+                      }`}
+                    >
+                      {b.status}
+                    </span>
+                    {b.status === 'CONFIRMED' && <AdminCancelBookingButton bookingId={b.id} />}
+                  </div>
                 </div>
               ))
             )}

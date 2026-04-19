@@ -4,6 +4,7 @@ import { getHistory } from '@/lib/actions/orders';
 import Link from 'next/link';
 import { ShoppingBag, Calendar, ArrowLeft } from 'lucide-react';
 import CancelBookingButton from './_components/CancelBookingButton';
+import CancelOrderButton from './_components/CancelOrderButton';
 
 const STATUS_COLOURS: Record<string, string> = {
   CONFIRMED: 'bg-green-100 text-green-700',
@@ -79,15 +80,20 @@ export default async function OrderHistoryPage() {
                       <p className="text-xs text-gray-400">{formatDate(item.createdAt)}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 shrink-0">
-                    <span className="font-bold text-gray-900 text-sm">
-                      ${item.totalAmount.toFixed(2)}
-                    </span>
-                    <span
-                      className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_COLOURS[item.status] ?? 'bg-gray-100 text-gray-600'}`}
-                    >
-                      {item.status}
-                    </span>
+                  <div className="flex flex-col items-end gap-2 shrink-0">
+                    <div className="flex items-center gap-3">
+                      <span className="font-bold text-gray-900 text-sm">
+                        ${item.totalAmount.toFixed(2)}
+                      </span>
+                      <span
+                        className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_COLOURS[item.status] ?? 'bg-gray-100 text-gray-600'}`}
+                      >
+                        {item.status}
+                      </span>
+                    </div>
+                    {(item.status === 'PAID' || item.status === 'PENDING') && (
+                      <CancelOrderButton orderId={item.id} />
+                    )}
                   </div>
                 </div>
                 <div className="border-t border-gray-100 pt-3 space-y-1">

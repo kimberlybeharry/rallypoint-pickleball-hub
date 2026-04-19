@@ -3,6 +3,11 @@
 import { prisma } from '@/db';
 import { auth } from '@/auth';
 import { revalidatePath } from 'next/cache';
+import {
+  sendBookingConfirmation,
+  sendOrderConfirmation,
+  sendCancellationNotice,
+} from '@/lib/email';
 
 export interface CheckoutBooking {
   slotId?: string;
@@ -144,6 +149,66 @@ export async function placeOrder(
       }
     }
 
+    // FR7/FR18: Send confirmation emails (non-fatal)
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { email: true, name: true },
+      });
+      if (user?.email) {
+        const name = user.name ?? 'there';
+        const emailTasks: Promise<void>[] = [];
+
+        if (bookings.length > 0) {
+          const courtIds = bookings.map((b) => b.courtId);
+          const courts = await prisma.court.findMany({
+            where: { id: { in: courtIds } },
+            select: { id: true, name: true },
+          });
+          const courtMap = Object.fromEntries(courts.map((c) => [c.id, c.name]));
+          for (const b of bookings) {
+            emailTasks.push(
+              sendBookingConfirmation({
+                to: user.email,
+                name,
+                courtName: courtMap[b.courtId] ?? 'Court',
+                date: b.date,
+                startTime: b.startTime,
+                totalAmount: b.price,
+              }),
+            );
+          }
+        }
+
+        if (products.length > 0) {
+          const productIds = products.map((p) => p.productId);
+          const productRecords = await prisma.product.findMany({
+            where: { id: { in: productIds } },
+            select: { id: true, name: true },
+          });
+          const nameMap = Object.fromEntries(productRecords.map((p) => [p.id, p.name]));
+          const productTotal = products.reduce((s, p) => s + p.unitPrice * p.quantity, 0);
+          emailTasks.push(
+            sendOrderConfirmation({
+              to: user.email,
+              name,
+              orderId: userId,
+              items: products.map((p) => ({
+                name: nameMap[p.productId] ?? 'Product',
+                quantity: p.quantity,
+                unitPrice: p.unitPrice,
+              })),
+              totalAmount: productTotal,
+            }),
+          );
+        }
+
+        await Promise.allSettled(emailTasks);
+      }
+    } catch {
+      // Email errors must never fail the order
+    }
+
     return { success: true };
   } catch (err) {
     console.error('placeOrder error:', err);
@@ -236,7 +301,15 @@ export async function cancelBooking(
 
   const booking = await prisma.booking.findUnique({
     where: { id: bookingId },
-    select: { userId: true, status: true, slotId: true, totalAmount: true },
+    select: {
+      userId: true,
+      status: true,
+      slotId: true,
+      totalAmount: true,
+      court: { select: { name: true } },
+      date: true,
+      startTime: true,
+    },
   });
 
   if (!booking) return { success: false, error: 'Booking not found' };
@@ -266,6 +339,84 @@ export async function cancelBooking(
       data: { points: { decrement: 50 } },
     }),
   ]);
+
+  // FR7/FR18: Send cancellation email (non-fatal)
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { email: true, name: true },
+  });
+  if (user?.email) {
+    const dateStr = booking.date.toISOString().split('T')[0];
+    await sendCancellationNotice({
+      to: user.email,
+      name: user.name ?? 'there',
+      type: 'booking',
+      detail: `${booking.court.name} on ${dateStr} at ${booking.startTime}`,
+    });
+  }
+
+  revalidatePath('/dashboard/orders');
+  revalidatePath('/dashboard');
+  return { success: true };
+}
+
+// ─── FR10: Cancel order (user-side) ────────────────────────────────────────
+
+export async function cancelOrder(orderId: string): Promise<{ success: boolean; error?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { success: false, error: 'Not authenticated' };
+
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: { items: { include: { product: { select: { name: true } } } } },
+  });
+
+  if (!order) return { success: false, error: 'Order not found' };
+  if (order.userId !== session.user.id) return { success: false, error: 'Access denied' };
+  if (order.status === 'CANCELLED') return { success: false, error: 'Already cancelled' };
+  if (order.status === 'SHIPPED' || order.status === 'DELIVERED') {
+    return { success: false, error: 'Cannot cancel a shipped or delivered order' };
+  }
+
+  const pointsToDeduct = Math.floor(order.totalAmount);
+
+  await prisma.$transaction([
+    prisma.order.update({ where: { id: orderId }, data: { status: 'CANCELLED' } }),
+    // Restore stock
+    ...order.items.map((i) =>
+      prisma.product.update({
+        where: { id: i.productId },
+        data: { stock: { increment: i.quantity } },
+      }),
+    ),
+    // Reverse purchase points
+    prisma.pointsEvent.create({
+      data: {
+        userId: session.user.id,
+        eventType: 'PURCHASE_CANCEL',
+        refId: orderId,
+        points: -pointsToDeduct,
+      },
+    }),
+    prisma.user.update({
+      where: { id: session.user.id },
+      data: { points: { decrement: pointsToDeduct } },
+    }),
+  ]);
+
+  // FR18: Send cancellation email (non-fatal)
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { email: true, name: true },
+  });
+  if (user?.email) {
+    await sendCancellationNotice({
+      to: user.email,
+      name: user.name ?? 'there',
+      type: 'order',
+      detail: `Equipment order (${order.items.map((i) => i.product.name).join(', ')}) — USD $${order.totalAmount.toFixed(2)}`,
+    });
+  }
 
   revalidatePath('/dashboard/orders');
   revalidatePath('/dashboard');
