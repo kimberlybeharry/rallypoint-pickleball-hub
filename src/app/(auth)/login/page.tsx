@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense, useState, useTransition } from 'react';
-import { login } from '@/lib/actions/auth';
+import { login, googleSignIn } from '@/lib/actions/auth';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
@@ -87,9 +87,7 @@ function LoginForm() {
 
       <button
         type="button"
-        onClick={() => {
-          window.location.href = `/api/auth/signin/google?callbackUrl=${encodeURIComponent(callbackUrl)}`;
-        }}
+        onClick={() => googleSignIn(callbackUrl)}
         className="w-full flex items-center justify-center gap-2 border border-gray-300 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
       >
         <svg className="w-4 h-4" viewBox="0 0 24 24">

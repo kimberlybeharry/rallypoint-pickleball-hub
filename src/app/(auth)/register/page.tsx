@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { signup } from '@/lib/actions/auth';
-import { signIn } from 'next-auth/react';
+import { signup, googleSignIn } from '@/lib/actions/auth';
 import Link from 'next/link';
 
 export default function RegisterPage() {
@@ -125,7 +124,7 @@ export default function RegisterPage() {
 
       <button
         type="button"
-        onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
+        onClick={() => googleSignIn('/dashboard')}
         className="w-full flex items-center justify-center gap-2 border border-gray-300 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
       >
         <svg className="w-4 h-4" viewBox="0 0 24 24">
