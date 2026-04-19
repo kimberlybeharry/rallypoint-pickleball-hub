@@ -133,12 +133,9 @@ export default async function DashboardPage() {
                 { label: 'Equipment purchase', value: '1 pt per $1 spent' },
                 { label: 'Referral', value: '250 pts per friend' },
               ].map((row) => (
-                <div
-                  key={row.label}
-                  className="bg-green-50 rounded-lg px-4 py-3 flex sm:flex-col items-center sm:text-center justify-between sm:justify-center gap-2"
-                >
-                  <p className="text-gray-500 text-sm sm:text-xs sm:mt-0">{row.label}</p>
-                  <p className="text-green-700 font-bold text-sm sm:text-lg">{row.value}</p>
+                <div key={row.label} className="bg-green-50 rounded-lg p-3 text-center">
+                  <p className="text-green-700 font-bold text-base">{row.value}</p>
+                  <p className="text-gray-500 text-xs mt-0.5">{row.label}</p>
                 </div>
               ))}
             </div>
