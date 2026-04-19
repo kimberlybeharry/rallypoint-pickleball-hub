@@ -201,35 +201,41 @@ function CartItemRow({
 }) {
   if (item.type === 'product') {
     return (
-      <div className="bg-white border border-gray-200 rounded-xl p-4 flex items-center gap-4">
-        <div className="w-14 h-14 bg-green-50 rounded-lg flex items-center justify-center text-2xl shrink-0">
-          🏓
+      <div className="bg-white border border-gray-200 rounded-xl p-4">
+        {/* Row 1: image + name + price */}
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-14 h-14 bg-green-50 rounded-lg flex items-center justify-center text-2xl shrink-0">
+            🏓
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-gray-900 truncate">{item.product.name}</p>
+            <p className="text-sm text-gray-500">{item.product.category}</p>
+          </div>
+          <p className="font-bold text-green-700 whitespace-nowrap">
+            ${(item.product.price * item.quantity).toFixed(2)}
+          </p>
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="font-semibold text-gray-900 truncate">{item.product.name}</p>
-          <p className="text-sm text-gray-500">{item.product.category}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => onQty(-1)}
-            className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors"
-          >
-            <Minus size={14} />
+        {/* Row 2: qty controls + remove — inset to align under name */}
+        <div className="flex items-center justify-between pl-[62px]">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => onQty(-1)}
+              className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors"
+            >
+              <Minus size={14} />
+            </button>
+            <span className="w-6 text-center font-semibold text-sm">{item.quantity}</span>
+            <button
+              onClick={() => onQty(1)}
+              className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors"
+            >
+              <Plus size={14} />
+            </button>
+          </div>
+          <button onClick={onRemove} className="text-gray-300 hover:text-red-400 transition-colors">
+            <Trash2 size={18} />
           </button>
-          <span className="w-6 text-center font-semibold text-sm">{item.quantity}</span>
-          <button
-            onClick={() => onQty(1)}
-            className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors"
-          >
-            <Plus size={14} />
-          </button>
         </div>
-        <p className="font-bold text-green-700 w-20 text-right">
-          ${(item.product.price * item.quantity).toFixed(2)}
-        </p>
-        <button onClick={onRemove} className="text-gray-300 hover:text-red-400 transition-colors">
-          <Trash2 size={18} />
-        </button>
       </div>
     );
   }
