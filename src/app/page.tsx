@@ -6,7 +6,7 @@ export default function HomePage() {
     <div>
       {/* Hero */}
       <section className="bg-green-700 text-white">
-        <div className="max-w-7xl mx-auto px-6 py-20 text-center">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-20 text-center">
           <p className="text-green-200 text-sm font-semibold uppercase tracking-widest mb-4">
             Trinidad and Tobago&apos;s Pickleball Platform
           </p>
@@ -35,8 +35,8 @@ export default function HomePage() {
       </section>
 
       {/* Feature cards */}
-      <section className="max-w-7xl mx-auto px-6 py-16">
-        <h2 className="text-2xl font-bold text-gray-900 text-center mb-10">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
+        <h2 className="text-2xl font-bold text-gray-900 text-center mb-8 sm:mb-10">
           Everything you need, in one place
         </h2>
         <div className="grid sm:grid-cols-3 gap-6">
@@ -65,10 +65,10 @@ export default function HomePage() {
       </section>
 
       {/* How it works */}
-      <section className="bg-white border-t border-b border-gray-200 py-16">
-        <div className="max-w-6xl mx-auto px-6 text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-10">How it works</h2>
-          <div className="grid sm:grid-cols-3 gap-8">
+      <section className="bg-white border-t border-b border-gray-200 py-10 sm:py-16">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-8 sm:mb-10">How it works</h2>
+          <div className="grid sm:grid-cols-3 gap-6 sm:gap-8">
             {[
               {
                 step: '1',
@@ -98,9 +98,11 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="max-w-7xl mx-auto px-6 py-16 text-center">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 py-10 sm:py-16 text-center">
         <p className="text-gray-500 text-sm mb-2">Ready to play?</p>
-        <h2 className="text-3xl font-bold text-gray-900 mb-6">Book your first court today.</h2>
+        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6">
+          Book your first court today.
+        </h2>
         <Link
           href="/booking"
           className="bg-green-700 text-white font-bold px-10 py-3 rounded-lg hover:bg-green-800 transition-colors"

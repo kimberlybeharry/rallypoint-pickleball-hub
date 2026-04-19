@@ -8,8 +8,8 @@ export default async function StorePage() {
   const products = await getProducts();
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-10">
-      <h1 className="text-3xl font-bold text-gray-900 mb-2">Equipment Store</h1>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
+      <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Equipment Store</h1>
       <p className="text-gray-500 mb-8">
         Paddles, balls, bags and more -- free local delivery on orders over $100 USD.
       </p>

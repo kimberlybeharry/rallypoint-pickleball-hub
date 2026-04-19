@@ -41,29 +41,29 @@ export default async function DashboardPage() {
       : Math.round(((data.points - tierFrom) / (data.nextTierThreshold - tierFrom)) * 100);
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-10">
-      <h1 className="text-3xl font-bold text-gray-900 mb-2">My Account</h1>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+      <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">My Account</h1>
       <p className="text-gray-500 mb-8">Welcome back, {data.name}</p>
 
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-green-700 text-white rounded-xl p-6">
-            <div className="flex items-start justify-between mb-4">
-              <div>
+            <div className="flex items-start justify-between gap-2 mb-4">
+              <div className="min-w-0">
                 <p className="text-green-200 text-sm mb-1">Current balance</p>
-                <p className="text-5xl font-extrabold">{data.points}</p>
+                <p className="text-4xl sm:text-5xl font-extrabold">{data.points}</p>
                 <p className="text-green-200 text-sm">points</p>
               </div>
               <span
-                className={`px-3 py-1 rounded-full text-xs font-bold ${TIER_COLOURS[data.tier] ?? 'text-gray-600 bg-gray-100'}`}
+                className={`shrink-0 px-3 py-1 rounded-full text-xs font-bold ${TIER_COLOURS[data.tier] ?? 'text-gray-600 bg-gray-100'}`}
               >
                 {data.tier}
               </span>
             </div>
             <div>
-              <div className="flex justify-between text-xs text-green-200 mb-1">
-                <span>{data.tier}</span>
-                <span>
+              <div className="flex justify-between text-xs text-green-200 mb-1 gap-2">
+                <span className="shrink-0">{data.tier}</span>
+                <span className="truncate text-right">
                   {data.nextTier} ({data.nextTierThreshold} pts)
                 </span>
               </div>
@@ -84,13 +84,13 @@ export default async function DashboardPage() {
           <div className="bg-white border border-gray-200 rounded-xl p-5">
             <Link
               href="/dashboard/orders"
-              className="flex items-center justify-between text-sm font-semibold text-gray-800 hover:text-green-700 transition-colors"
+              className="flex items-center justify-between gap-3 text-sm font-semibold text-gray-800 hover:text-green-700 transition-colors"
             >
-              <span className="flex items-center gap-2">
-                <History size={16} className="text-green-600" />
+              <span className="flex items-center gap-2 min-w-0 truncate">
+                <History size={16} className="text-green-600 shrink-0" />
                 Order &amp; Booking History
               </span>
-              <span className="text-gray-400 text-xs">View all &rarr;</span>
+              <span className="text-gray-400 text-xs shrink-0">View all &rarr;</span>
             </Link>
           </div>
 
@@ -127,15 +127,18 @@ export default async function DashboardPage() {
 
           <div className="bg-white border border-gray-200 rounded-xl p-6">
             <h2 className="font-bold text-gray-900 mb-4">How to earn points</h2>
-            <div className="grid sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {[
                 { label: 'Court booking', value: '50 pts / booking' },
                 { label: 'Equipment purchase', value: '1 pt per $1 spent' },
                 { label: 'Referral', value: '250 pts per friend' },
               ].map((row) => (
-                <div key={row.label} className="bg-green-50 rounded-lg p-4 text-center">
-                  <p className="text-green-700 font-bold text-lg">{row.value}</p>
-                  <p className="text-gray-500 text-xs mt-1">{row.label}</p>
+                <div
+                  key={row.label}
+                  className="bg-green-50 rounded-lg px-4 py-3 flex sm:flex-col items-center sm:text-center justify-between sm:justify-center gap-2"
+                >
+                  <p className="text-gray-500 text-sm sm:text-xs sm:mt-0">{row.label}</p>
+                  <p className="text-green-700 font-bold text-sm sm:text-lg">{row.value}</p>
                 </div>
               ))}
             </div>

@@ -32,7 +32,7 @@ export default async function OrderHistoryPage() {
   const { items } = await getHistory();
 
   return (
-    <div className="max-w-3xl mx-auto px-6 py-10">
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10">
       <div className="mb-8">
         <Link
           href="/dashboard"
@@ -40,7 +40,9 @@ export default async function OrderHistoryPage() {
         >
           <ArrowLeft size={14} /> Back to Dashboard
         </Link>
-        <h1 className="text-3xl font-bold text-gray-900">Order &amp; Booking History</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+          Order &amp; Booking History
+        </h1>
         <p className="text-gray-500 mt-1">All your past purchases and court reservations</p>
       </div>
 

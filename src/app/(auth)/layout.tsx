@@ -11,7 +11,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           </a>
           <p className="text-gray-400 text-sm mt-1">Pickleball Hub</p>
         </div>
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">{children}</div>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
+          {children}
+        </div>
       </div>
     </div>
   );

@@ -83,8 +83,8 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-10">
-      <h1 className="text-3xl font-bold text-gray-900 mb-2">Checkout</h1>
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
+      <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Checkout</h1>
       <p className="text-gray-500 mb-8">Review your items before paying.</p>
 
       {items.length === 0 ? (
@@ -130,7 +130,7 @@ export default function CheckoutPage() {
                       : (item as CartBooking).price;
                   return (
                     <div key={item.id} className="flex justify-between text-gray-600">
-                      <span className="truncate max-w-[160px]">{label}</span>
+                      <span className="truncate mr-2">{label}</span>
                       <span className="font-medium">${price.toFixed(2)}</span>
                     </div>
                   );
@@ -241,18 +241,21 @@ function CartItemRow({
   }
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-4 flex items-center gap-4">
-      <div className="w-14 h-14 bg-green-50 rounded-lg flex items-center justify-center text-2xl shrink-0">
+    <div className="bg-white border border-gray-200 rounded-xl p-4 flex items-center gap-3">
+      <div className="w-12 h-12 sm:w-14 sm:h-14 bg-green-50 rounded-lg flex items-center justify-center text-2xl shrink-0">
         🏟️
       </div>
       <div className="flex-1 min-w-0">
-        <p className="font-semibold text-gray-900">{item.courtName}</p>
-        <p className="text-sm text-gray-500">
+        <p className="font-semibold text-gray-900 truncate">{item.courtName}</p>
+        <p className="text-sm text-gray-500 truncate">
           {item.date} &bull; {item.timeLabel}
         </p>
       </div>
-      <p className="font-bold text-green-700 w-20 text-right">${item.price.toFixed(2)}</p>
-      <button onClick={onRemove} className="text-gray-300 hover:text-red-400 transition-colors">
+      <p className="font-bold text-green-700 shrink-0 text-right">${item.price.toFixed(2)}</p>
+      <button
+        onClick={onRemove}
+        className="text-gray-300 hover:text-red-400 transition-colors shrink-0"
+      >
         <Trash2 size={18} />
       </button>
     </div>
