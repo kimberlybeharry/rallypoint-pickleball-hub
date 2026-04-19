@@ -166,6 +166,7 @@ export default function BookingGrid({
 
       {/* Slots grid */}
       <h2 className="font-semibold text-gray-800 mb-4">{displayDate}</h2>
+      <p className="sm:hidden text-xs text-gray-400 mb-2">Scroll right to see all courts</p>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[600px] border-collapse">
           <thead>
