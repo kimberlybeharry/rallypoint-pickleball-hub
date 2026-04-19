@@ -1,18 +1,18 @@
-'use server';
+﻿"use server";
 
-import { prisma } from '@/db';
-import { signIn } from '@/auth';
-import bcrypt from 'bcryptjs';
-import { SignupSchema, LoginSchema } from '@/lib/schemas';
-import { AuthError } from 'next-auth';
+import { prisma } from "@/db";
+import { signIn } from "@/auth";
+import bcrypt from "bcryptjs";
+import { SignupSchema, LoginSchema } from "@/lib/schemas";
+import { AuthError } from "next-auth";
 
 export async function signup(formData: FormData) {
   const raw = {
-    name: formData.get('name'),
-    email: formData.get('email'),
-    password: formData.get('password'),
-    confirmPassword: formData.get('confirmPassword'),
-    referralCode: formData.get('referralCode') ?? undefined,
+    name: formData.get("name"),
+    email: formData.get("email"),
+    password: formData.get("password"),
+    confirmPassword: formData.get("confirmPassword"),
+    referralCode: formData.get("referralCode") ?? undefined,
   };
 
   const parsed = SignupSchema.safeParse(raw);
@@ -24,7 +24,7 @@ export async function signup(formData: FormData) {
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
-    return { error: 'An account with this email already exists' };
+    return { error: "An account with this email already exists" };
   }
 
   const passwordHash = await bcrypt.hash(password, 12);
@@ -37,7 +37,7 @@ export async function signup(formData: FormData) {
   await prisma.pointsEvent.create({
     data: {
       userId: user.id,
-      eventType: 'WELCOME',
+      eventType: "WELCOME",
       points: 1000,
     },
   });
@@ -60,17 +60,22 @@ export async function signup(formData: FormData) {
   }
 
   // Auto sign-in after registration
-  await signIn('credentials', {
+  await signIn("credentials", {
     email,
     password,
-    redirectTo: '/dashboard',
+    redirectTo: "/dashboard",
   });
+}
+
+export async function googleSignIn(callbackUrl: string) {
+  // Server action: initiates Google OAuth via POST (required by Auth.js v5)
+  await signIn("google", { redirectTo: callbackUrl });
 }
 
 export async function login(formData: FormData) {
   const raw = {
-    email: formData.get('email'),
-    password: formData.get('password'),
+    email: formData.get("email"),
+    password: formData.get("password"),
   };
 
   const parsed = LoginSchema.safeParse(raw);
@@ -79,8 +84,8 @@ export async function login(formData: FormData) {
   }
 
   try {
-    const callbackUrl = (formData.get('callbackUrl') as string) || '/dashboard';
-    await signIn('credentials', {
+    const callbackUrl = (formData.get("callbackUrl") as string) || "/dashboard";
+    await signIn("credentials", {
       email: parsed.data.email,
       password: parsed.data.password,
       redirectTo: callbackUrl,
@@ -88,10 +93,10 @@ export async function login(formData: FormData) {
   } catch (error) {
     if (error instanceof AuthError) {
       switch (error.type) {
-        case 'CredentialsSignin':
-          return { error: 'Invalid email or password' };
+        case "CredentialsSignin":
+          return { error: "Invalid email or password" };
         default:
-          return { error: 'Something went wrong. Please try again.' };
+          return { error: "Something went wrong. Please try again." };
       }
     }
     throw error; // NEXT_REDIRECT -- must rethrow
