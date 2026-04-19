@@ -46,7 +46,7 @@ export default async function DashboardPage() {
       <p className="text-gray-500 mb-8">Welcome back, {data.name}</p>
 
       <div className="grid lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-6 min-w-0">
           <div className="bg-green-700 text-white rounded-xl p-6">
             <div className="flex items-start justify-between gap-2 mb-4">
               <div className="min-w-0">
