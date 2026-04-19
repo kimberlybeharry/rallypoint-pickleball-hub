@@ -1,7 +1,8 @@
 import { getProducts } from '@/lib/actions/products';
 import ProductGrid from './_components/ProductGrid';
 
-export const dynamic = 'force-dynamic';
+// Products change rarely — cache for 1 hour, revalidate on demand
+export const revalidate = 3600;
 
 export default async function StorePage() {
   const products = await getProducts();

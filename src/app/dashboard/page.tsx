@@ -1,4 +1,5 @@
 import { auth } from '@/auth';
+import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { getDashboardData, getAIRecommendations } from '@/lib/actions/dashboard';
 import Link from 'next/link';
@@ -28,18 +29,13 @@ export default async function DashboardPage() {
   const session = await auth();
   if (!session?.user?.id) redirect('/login');
 
-  const [data, recs] = await Promise.all([
-    getDashboardData(session.user.id),
-    getAIRecommendations(session.user.id),
-  ]);
+  const data = await getDashboardData(session.user.id);
 
   const tierFrom = TIER_FROM[data.tier] ?? 0;
   const progressPct =
     data.tier === 'Platinum'
       ? 100
-      : Math.round(
-          ((data.points - tierFrom) / (data.nextTierThreshold - tierFrom)) * 100,
-        );
+      : Math.round(((data.points - tierFrom) / (data.nextTierThreshold - tierFrom)) * 100);
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-10">
@@ -55,14 +51,18 @@ export default async function DashboardPage() {
                 <p className="text-5xl font-extrabold">{data.points}</p>
                 <p className="text-green-200 text-sm">points</p>
               </div>
-              <span className={`px-3 py-1 rounded-full text-xs font-bold ${TIER_COLOURS[data.tier] ?? 'text-gray-600 bg-gray-100'}`}>
+              <span
+                className={`px-3 py-1 rounded-full text-xs font-bold ${TIER_COLOURS[data.tier] ?? 'text-gray-600 bg-gray-100'}`}
+              >
                 {data.tier}
               </span>
             </div>
             <div>
               <div className="flex justify-between text-xs text-green-200 mb-1">
                 <span>{data.tier}</span>
-                <span>{data.nextTier} ({data.nextTierThreshold} pts)</span>
+                <span>
+                  {data.nextTier} ({data.nextTierThreshold} pts)
+                </span>
               </div>
               <div className="w-full bg-green-600 rounded-full h-2">
                 <div
@@ -81,7 +81,9 @@ export default async function DashboardPage() {
           <div className="bg-white border border-gray-200 rounded-xl p-6">
             <h2 className="font-bold text-gray-900 mb-4">Recent Activity</h2>
             {data.recentActivity.length === 0 ? (
-              <p className="text-gray-400 text-sm">No activity yet. Book a court or shop to earn points!</p>
+              <p className="text-gray-400 text-sm">
+                No activity yet. Book a court or shop to earn points!
+              </p>
             ) : (
               <div className="space-y-3">
                 {data.recentActivity.map((item) => (
@@ -93,7 +95,9 @@ export default async function DashboardPage() {
                       {ACTIVITY_ICONS[item.type]}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-800 truncate">{item.description}</p>
+                      <p className="text-sm font-medium text-gray-800 truncate">
+                        {item.description}
+                      </p>
                       <p className="text-xs text-gray-400">{item.date}</p>
                     </div>
                     <span className="text-green-700 font-semibold text-sm whitespace-nowrap">
@@ -123,35 +127,9 @@ export default async function DashboardPage() {
         </div>
 
         <div className="space-y-4">
-          <div className="bg-white border border-gray-200 rounded-xl p-6">
-            <h2 className="font-bold text-gray-900 mb-1">Recommended for you</h2>
-            <p className="text-gray-400 text-xs mb-4">Based on your activity</p>
-            <div className="space-y-4">
-              {recs.map((rec) => (
-                <div key={rec.id} className="border border-gray-100 rounded-lg p-3">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center text-xl shrink-0">
-                      {rec.type === 'booking' ? String.fromCodePoint(0x1f3df) : String.fromCodePoint(0x1f3d3)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-900 truncate">{rec.title}</p>
-                      <p className="text-xs text-gray-400">{rec.subtitle}</p>
-                      <p className="text-xs text-green-700 font-medium mt-1">
-                        ${rec.price.toFixed(2)}
-                      </p>
-                    </div>
-                  </div>
-                  <p className="text-xs text-gray-400 mt-2 italic">{rec.reason}</p>
-                  <Link
-                    href={rec.type === 'booking' ? '/booking' : '/store'}
-                    className="mt-2 block text-center text-xs font-semibold text-green-700 border border-green-200 rounded-lg py-1.5 hover:bg-green-50 transition-colors"
-                  >
-                    {rec.type === 'booking' ? 'Book now' : 'Add to cart'}
-                  </Link>
-                </div>
-              ))}
-            </div>
-          </div>
+          <Suspense fallback={<RecommendationsSkeleton />}>
+            <RecommendationsPanel userId={session.user.id} />
+          </Suspense>
 
           {data.challenge && (
             <div className="bg-white border border-gray-200 rounded-xl p-6">
@@ -182,6 +160,66 @@ export default async function DashboardPage() {
             </div>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+async function RecommendationsPanel({ userId }: { userId: string }) {
+  const recs = await getAIRecommendations(userId);
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl p-6">
+      <h2 className="font-bold text-gray-900 mb-1">Recommended for you</h2>
+      <p className="text-gray-400 text-xs mb-4">Based on your activity</p>
+      <div className="space-y-4">
+        {recs.map((rec) => (
+          <div key={rec.id} className="border border-gray-100 rounded-lg p-3">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center text-xl shrink-0">
+                {rec.type === 'booking'
+                  ? String.fromCodePoint(0x1f3df)
+                  : String.fromCodePoint(0x1f3d3)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-gray-900 truncate">{rec.title}</p>
+                <p className="text-xs text-gray-400">{rec.subtitle}</p>
+                <p className="text-xs text-green-700 font-medium mt-1">${rec.price.toFixed(2)}</p>
+              </div>
+            </div>
+            <p className="text-xs text-gray-400 mt-2 italic">{rec.reason}</p>
+            <Link
+              href={rec.type === 'booking' ? '/booking' : '/store'}
+              className="mt-2 block text-center text-xs font-semibold text-green-700 border border-green-200 rounded-lg py-1.5 hover:bg-green-50 transition-colors"
+            >
+              {rec.type === 'booking' ? 'Book now' : 'Add to cart'}
+            </Link>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function RecommendationsSkeleton() {
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl p-6">
+      <h2 className="font-bold text-gray-900 mb-1">Recommended for you</h2>
+      <p className="text-gray-400 text-xs mb-4">Based on your activity</p>
+      <div className="space-y-4">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="border border-gray-100 rounded-lg p-3 animate-pulse">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 bg-gray-100 rounded-lg shrink-0" />
+              <div className="flex-1 space-y-2">
+                <div className="h-3 bg-gray-100 rounded w-3/4" />
+                <div className="h-2 bg-gray-100 rounded w-1/2" />
+                <div className="h-2 bg-gray-100 rounded w-1/4" />
+              </div>
+            </div>
+            <div className="h-2 bg-gray-100 rounded w-full mt-3" />
+            <div className="h-7 bg-gray-50 rounded mt-2 border border-gray-100" />
+          </div>
+        ))}
       </div>
     </div>
   );

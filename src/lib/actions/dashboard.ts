@@ -55,18 +55,32 @@ function eventActivityType(eventType: string): 'booking' | 'purchase' | 'points'
 }
 
 export async function getDashboardData(userId: string): Promise<DashboardData> {
-  const user = await prisma.user.findUniqueOrThrow({
-    where: { id: userId },
-    select: { name: true, points: true },
-  });
+  const now = new Date();
+  // Run all 4 queries in parallel — eliminates 3 sequential DB round-trips
+  const [user, events, userChallenge, activeChallenge] = await Promise.all([
+    prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { name: true, points: true },
+    }),
+    prisma.pointsEvent.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+    }),
+    prisma.userChallenge.findFirst({
+      where: {
+        userId,
+        challenge: { isActive: true, expiresAt: { gte: now } },
+      },
+      include: { challenge: true },
+      orderBy: { challenge: { expiresAt: 'asc' } },
+    }),
+    prisma.challenge.findFirst({
+      where: { isActive: true, expiresAt: { gte: now } },
+    }),
+  ]);
 
   const { tier, nextTier, threshold } = getTier(user.points);
-
-  const events = await prisma.pointsEvent.findMany({
-    where: { userId },
-    orderBy: { createdAt: 'desc' },
-    take: 5,
-  });
 
   const recentActivity = events.map((e) => ({
     id: e.id,
@@ -80,18 +94,7 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
     }),
   }));
 
-  // Active challenge
-  const now = new Date();
-  const userChallenge = await prisma.userChallenge.findFirst({
-    where: {
-      userId,
-      challenge: { isActive: true, expiresAt: { gte: now } },
-    },
-    include: { challenge: true },
-    orderBy: { challenge: { expiresAt: 'asc' } },
-  });
-
-  // If no user challenge entry yet, find the active challenge and return progress=0
+  // Challenge: use user-specific progress if found, otherwise active challenge with 0 progress
   let challenge: DashboardData['challenge'] = null;
   if (userChallenge) {
     challenge = {
@@ -105,23 +108,18 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
         day: 'numeric',
       }),
     };
-  } else {
-    const activeChallenge = await prisma.challenge.findFirst({
-      where: { isActive: true, expiresAt: { gte: now } },
-    });
-    if (activeChallenge) {
-      challenge = {
-        name: activeChallenge.name,
-        description: activeChallenge.description,
-        progress: 0,
-        requiredCount: activeChallenge.requiredCount,
-        rewardPoints: activeChallenge.rewardPoints,
-        expiresAt: activeChallenge.expiresAt.toLocaleDateString('en-TT', {
-          month: 'long',
-          day: 'numeric',
-        }),
-      };
-    }
+  } else if (activeChallenge) {
+    challenge = {
+      name: activeChallenge.name,
+      description: activeChallenge.description,
+      progress: 0,
+      requiredCount: activeChallenge.requiredCount,
+      rewardPoints: activeChallenge.rewardPoints,
+      expiresAt: activeChallenge.expiresAt.toLocaleDateString('en-TT', {
+        month: 'long',
+        day: 'numeric',
+      }),
+    };
   }
 
   return {
