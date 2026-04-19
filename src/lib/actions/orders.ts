@@ -2,6 +2,7 @@
 
 import { prisma } from '@/db';
 import { auth } from '@/auth';
+import { revalidatePath } from 'next/cache';
 
 export interface CheckoutBooking {
   slotId?: string;
@@ -117,9 +118,183 @@ export async function placeOrder(
       }
     });
 
+    // FR13: Award referral bonus to sender if this is the recipient's first purchase
+    const existingPurchases = await prisma.order.count({ where: { userId } });
+    if (existingPurchases === 1) {
+      // This was the first order — check if user was referred
+      const referral = await prisma.referral.findFirst({
+        where: { recipientId: userId },
+        select: { id: true, senderId: true },
+      });
+      if (referral) {
+        await prisma.$transaction([
+          prisma.pointsEvent.create({
+            data: {
+              userId: referral.senderId,
+              eventType: 'REFERRAL',
+              refId: referral.id,
+              points: 250,
+            },
+          }),
+          prisma.user.update({
+            where: { id: referral.senderId },
+            data: { points: { increment: 250 } },
+          }),
+        ]);
+      }
+    }
+
     return { success: true };
   } catch (err) {
     console.error('placeOrder error:', err);
     return { success: false, error: 'Order failed. Please try again.' };
   }
+}
+
+// ─── FR8: Order and booking history ────────────────────────────────────────
+
+export interface OrderHistoryItem {
+  id: string;
+  type: 'order';
+  status: string;
+  totalAmount: number;
+  createdAt: string;
+  items: { name: string; quantity: number; unitPrice: number }[];
+}
+
+export interface BookingHistoryItem {
+  id: string;
+  type: 'booking';
+  status: string;
+  courtName: string;
+  date: string;
+  startTime: string;
+  totalAmount: number;
+  createdAt: string;
+}
+
+export type HistoryItem = OrderHistoryItem | BookingHistoryItem;
+
+export async function getHistory(): Promise<{ items: HistoryItem[]; error?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { items: [], error: 'Not authenticated' };
+
+  const [orders, bookings] = await Promise.all([
+    prisma.order.findMany({
+      where: { userId: session.user.id },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        items: { include: { product: { select: { name: true } } } },
+      },
+    }),
+    prisma.booking.findMany({
+      where: { userId: session.user.id },
+      orderBy: { createdAt: 'desc' },
+      include: { court: { select: { name: true } } },
+    }),
+  ]);
+
+  const orderItems: OrderHistoryItem[] = orders.map((o) => ({
+    id: o.id,
+    type: 'order',
+    status: o.status,
+    totalAmount: o.totalAmount,
+    createdAt: o.createdAt.toISOString(),
+    items: o.items.map((i) => ({
+      name: i.product.name,
+      quantity: i.quantity,
+      unitPrice: i.unitPrice,
+    })),
+  }));
+
+  const bookingItems: BookingHistoryItem[] = bookings.map((b) => ({
+    id: b.id,
+    type: 'booking',
+    status: b.status,
+    courtName: b.court.name,
+    date: b.date.toISOString().split('T')[0],
+    startTime: b.startTime,
+    totalAmount: b.totalAmount,
+    createdAt: b.createdAt.toISOString(),
+  }));
+
+  // Merge and sort by createdAt desc
+  const all: HistoryItem[] = [...orderItems, ...bookingItems].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
+
+  return { items: all };
+}
+
+// ─── FR10: Cancel booking ───────────────────────────────────────────────────
+
+export async function cancelBooking(
+  bookingId: string,
+): Promise<{ success: boolean; error?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { success: false, error: 'Not authenticated' };
+
+  const booking = await prisma.booking.findUnique({
+    where: { id: bookingId },
+    select: { userId: true, status: true, slotId: true, totalAmount: true },
+  });
+
+  if (!booking) return { success: false, error: 'Booking not found' };
+  if (booking.userId !== session.user.id) return { success: false, error: 'Access denied' };
+  if (booking.status === 'CANCELLED') return { success: false, error: 'Already cancelled' };
+
+  await prisma.$transaction([
+    prisma.booking.update({
+      where: { id: bookingId },
+      data: { status: 'CANCELLED' },
+    }),
+    prisma.timeSlot.update({
+      where: { id: booking.slotId },
+      data: { status: 'AVAILABLE', heldUntil: null },
+    }),
+    // Reverse the 50 points that were awarded for this booking
+    prisma.pointsEvent.create({
+      data: {
+        userId: session.user.id,
+        eventType: 'BOOKING_CANCEL',
+        refId: bookingId,
+        points: -50,
+      },
+    }),
+    prisma.user.update({
+      where: { id: session.user.id },
+      data: { points: { decrement: 50 } },
+    }),
+  ]);
+
+  revalidatePath('/dashboard/orders');
+  revalidatePath('/dashboard');
+  return { success: true };
+}
+
+// ─── FR13: Referral code ────────────────────────────────────────────────────
+
+export async function getOrCreateReferralCode(): Promise<{ code: string | null; error?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { code: null, error: 'Not authenticated' };
+
+  const existing = await prisma.referral.findFirst({
+    where: { senderId: session.user.id },
+    select: { code: true },
+  });
+
+  if (existing) return { code: existing.code };
+
+  // Generate a short 8-char alphanumeric code
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 8; i++) {
+    code += chars[Math.floor(Math.random() * chars.length)];
+  }
+
+  const referral = await prisma.referral.create({
+    data: { senderId: session.user.id, code },
+  });
+
+  return { code: referral.code };
 }

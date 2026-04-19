@@ -1,13 +1,16 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useCart } from '@/lib/cart-context';
 import { ShoppingCart, Check } from 'lucide-react';
 import type { Product } from '@/generated/prisma';
 
 type Category = 'All' | 'Paddles' | 'Balls' | 'Bags' | 'Footwear' | 'Apparel';
+type SkillFilter = 'All' | 'Beginner' | 'Intermediate' | 'Advanced';
 
 const CATEGORIES: Category[] = ['All', 'Paddles', 'Balls', 'Bags', 'Footwear', 'Apparel'];
+const SKILL_LEVELS: SkillFilter[] = ['All', 'Beginner', 'Intermediate', 'Advanced'];
 
 const CATEGORY_EMOJI: Record<string, string> = {
   Paddles: 'P',
@@ -27,16 +30,19 @@ const CATEGORY_COLOR: Record<string, string> = {
 
 export default function ProductGrid({ products }: { products: Product[] }) {
   const [activeCategory, setActiveCategory] = useState<Category>('All');
+  const [activeSkill, setActiveSkill] = useState<SkillFilter>('All');
   const [search, setSearch] = useState('');
   const [added, setAdded] = useState<Record<string, boolean>>({});
   const { addProduct } = useCart();
 
   const filtered = products.filter((p) => {
     const matchCat = activeCategory === 'All' || p.category === activeCategory;
+    const matchSkill =
+      activeSkill === 'All' || (p.skillLevel != null && p.skillLevel === activeSkill);
     const matchSearch =
       p.name.toLowerCase().includes(search.toLowerCase()) ||
       p.description.toLowerCase().includes(search.toLowerCase());
-    return matchCat && matchSearch;
+    return matchCat && matchSkill && matchSearch;
   });
 
   function handleAdd(product: Product) {
@@ -56,14 +62,16 @@ export default function ProductGrid({ products }: { products: Product[] }) {
 
   return (
     <>
-      <div className="flex flex-col sm:flex-row gap-4 mb-8">
-        <input
-          type="text"
-          placeholder="Search products..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="border border-gray-300 rounded-lg px-4 py-2 text-sm flex-1 focus:outline-none focus:ring-2 focus:ring-green-500"
-        />
+      <div className="flex flex-col gap-4 mb-8">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <input
+            type="text"
+            placeholder="Search products..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="border border-gray-300 rounded-lg px-4 py-2 text-sm flex-1 focus:outline-none focus:ring-2 focus:ring-green-500"
+          />
+        </div>
         <div className="flex flex-wrap gap-2">
           {CATEGORIES.map((cat) => (
             <button
@@ -80,6 +88,23 @@ export default function ProductGrid({ products }: { products: Product[] }) {
             </button>
           ))}
         </div>
+        <div className="flex flex-wrap gap-2 items-center">
+          <span className="text-xs text-gray-500 font-medium">Skill level:</span>
+          {SKILL_LEVELS.map((level) => (
+            <button
+              key={level}
+              type="button"
+              onClick={() => setActiveSkill(level)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                activeSkill === level
+                  ? 'bg-gray-800 text-white'
+                  : 'bg-white border border-gray-200 text-gray-500 hover:border-gray-400'
+              }`}
+            >
+              {level}
+            </button>
+          ))}
+        </div>
       </div>
 
       {filtered.length === 0 ? (
@@ -91,13 +116,15 @@ export default function ProductGrid({ products }: { products: Product[] }) {
               key={product.id}
               className="bg-white border border-gray-200 rounded-xl overflow-hidden flex flex-col"
             >
-              <div
-                className={`h-44 flex items-center justify-center text-4xl font-bold ${
-                  CATEGORY_COLOR[product.category] ?? 'bg-green-50 text-green-700'
-                }`}
-              >
-                {CATEGORY_EMOJI[product.category] ?? 'P'}
-              </div>
+              <Link href={`/store/${product.id}`}>
+                <div
+                  className={`h-44 flex items-center justify-center text-4xl font-bold hover:opacity-90 transition-opacity cursor-pointer ${
+                    CATEGORY_COLOR[product.category] ?? 'bg-green-50 text-green-700'
+                  }`}
+                >
+                  {CATEGORY_EMOJI[product.category] ?? 'P'}
+                </div>
+              </Link>
               <div className="p-5 flex flex-col flex-1 gap-3">
                 <div className="flex items-start justify-between gap-2">
                   <div>
@@ -106,13 +133,22 @@ export default function ProductGrid({ products }: { products: Product[] }) {
                         {product.badge}
                       </span>
                     )}
-                    <h3 className="font-bold text-gray-900">{product.name}</h3>
+                    <Link href={`/store/${product.id}`}>
+                      <h3 className="font-bold text-gray-900 hover:text-green-700 transition-colors cursor-pointer">
+                        {product.name}
+                      </h3>
+                    </Link>
                   </div>
                   <span className="font-bold text-green-700 whitespace-nowrap">
                     USD ${product.price.toFixed(2)}
                   </span>
                 </div>
                 <p className="text-gray-500 text-sm flex-1">{product.description}</p>
+                {product.skillLevel && (
+                  <span className="self-start text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+                    {product.skillLevel}
+                  </span>
+                )}
                 <button
                   type="button"
                   onClick={() => handleAdd(product)}

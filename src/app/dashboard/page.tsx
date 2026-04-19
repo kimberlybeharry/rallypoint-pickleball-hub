@@ -2,8 +2,10 @@ import { auth } from '@/auth';
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { getDashboardData, getAIRecommendations } from '@/lib/actions/dashboard';
+import { getOrCreateReferralCode } from '@/lib/actions/orders';
 import Link from 'next/link';
-import { Calendar, ShoppingBag, Gift } from 'lucide-react';
+import { Calendar, ShoppingBag, Gift, History } from 'lucide-react';
+import ReferralCard from './_components/ReferralCard';
 
 const TIER_COLOURS: Record<string, string> = {
   Bronze: 'text-orange-700 bg-orange-100',
@@ -30,6 +32,7 @@ export default async function DashboardPage() {
   if (!session?.user?.id) redirect('/login');
 
   const data = await getDashboardData(session.user.id);
+  const { code: referralCode } = await getOrCreateReferralCode();
 
   const tierFrom = TIER_FROM[data.tier] ?? 0;
   const progressPct =
@@ -78,8 +81,21 @@ export default async function DashboardPage() {
             </div>
           </div>
 
+          <div className="bg-white border border-gray-200 rounded-xl p-5">
+            <Link
+              href="/dashboard/orders"
+              className="flex items-center justify-between text-sm font-semibold text-gray-800 hover:text-green-700 transition-colors"
+            >
+              <span className="flex items-center gap-2">
+                <History size={16} className="text-green-600" />
+                Order &amp; Booking History
+              </span>
+              <span className="text-gray-400 text-xs">View all &rarr;</span>
+            </Link>
+          </div>
+
           <div className="bg-white border border-gray-200 rounded-xl p-6">
-            <h2 className="font-bold text-gray-900 mb-4">Recent Activity</h2>
+            <h2 className="font-bold text-gray-900 mb-4">Recent Activity</h2>{' '}
             {data.recentActivity.length === 0 ? (
               <p className="text-gray-400 text-sm">
                 No activity yet. Book a court or shop to earn points!
@@ -115,7 +131,7 @@ export default async function DashboardPage() {
               {[
                 { label: 'Court booking', value: '50 pts / booking' },
                 { label: 'Equipment purchase', value: '1 pt per $1 spent' },
-                { label: 'Referral', value: '100 pts per friend' },
+                { label: 'Referral', value: '250 pts per friend' },
               ].map((row) => (
                 <div key={row.label} className="bg-green-50 rounded-lg p-4 text-center">
                   <p className="text-green-700 font-bold text-lg">{row.value}</p>
@@ -124,6 +140,8 @@ export default async function DashboardPage() {
               ))}
             </div>
           </div>
+
+          {referralCode && <ReferralCard code={referralCode} />}
         </div>
 
         <div className="space-y-4">
