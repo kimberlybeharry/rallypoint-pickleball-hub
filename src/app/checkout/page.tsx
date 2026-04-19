@@ -1,25 +1,50 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import Link from "next/link";
-import { useCart } from "@/lib/cart-context";
-import { Trash2, Plus, Minus, CheckCircle } from "lucide-react";
-import type { CartBooking, CartProduct } from "@/lib/cart-context";
+import { useState } from 'react';
+import Link from 'next/link';
+import { useCart } from '@/lib/cart-context';
+import { placeOrder } from '@/lib/actions/orders';
+import { Trash2, Plus, Minus, CheckCircle } from 'lucide-react';
+import type { CartBooking, CartProduct } from '@/lib/cart-context';
 
 export default function CheckoutPage() {
   const { items, removeItem, updateQty, total, clear } = useCart();
   const [confirmed, setConfirmed] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const pointsEarned = Math.floor(total);
 
-  function handlePay() {
+  async function handlePay() {
     setProcessing(true);
-    setTimeout(() => {
+    setError(null);
+    try {
+      const products = items
+        .filter((i): i is CartProduct => i.type === 'product')
+        .map((i) => ({
+          productId: i.product.id,
+          quantity: i.quantity,
+          unitPrice: i.product.price,
+        }));
+      const bookings = items
+        .filter((i): i is CartBooking => i.type === 'booking')
+        .map((i) => ({
+          slotId: i.slotId,
+          courtId: i.courtId,
+          date: i.date,
+          startTime: i.time,
+          price: i.price,
+        }));
+      const result = await placeOrder(products, bookings);
+      if (!result.success) {
+        setError(result.error ?? 'Something went wrong.');
+        return;
+      }
       clear();
-      setProcessing(false);
       setConfirmed(true);
-    }, 1800);
+    } finally {
+      setProcessing(false);
+    }
   }
 
   if (confirmed) {
@@ -35,7 +60,9 @@ export default function CheckoutPage() {
         </p>
         <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-sm text-green-800 mb-8">
           <p className="font-semibold mb-1">Stripe test mode</p>
-          <p>No real charge was made. Card number 4242 4242 4242 4242 was used for demonstration.</p>
+          <p>
+            No real charge was made. Card number 4242 4242 4242 4242 was used for demonstration.
+          </p>
         </div>
         <div className="flex gap-4 justify-center">
           <Link
@@ -56,7 +83,7 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-10">
+    <div className="max-w-6xl mx-auto px-6 py-10">
       <h1 className="text-3xl font-bold text-gray-900 mb-2">Checkout</h1>
       <p className="text-gray-500 mb-8">Review your items before paying.</p>
 
@@ -94,11 +121,11 @@ export default function CheckoutPage() {
               <div className="space-y-2 text-sm mb-4">
                 {items.map((item) => {
                   const label =
-                    item.type === "product"
+                    item.type === 'product'
                       ? `${(item as CartProduct).product.name} x${(item as CartProduct).quantity}`
                       : `${(item as CartBooking).courtName} — ${(item as CartBooking).timeLabel}`;
                   const price =
-                    item.type === "product"
+                    item.type === 'product'
                       ? (item as CartProduct).product.price * (item as CartProduct).quantity
                       : (item as CartBooking).price;
                   return (
@@ -119,7 +146,9 @@ export default function CheckoutPage() {
 
               {/* Mock card input */}
               <div className="mb-4 space-y-2">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Card details (test mode)</p>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  Card details (test mode)
+                </p>
                 <input
                   readOnly
                   value="4242 4242 4242 4242"
@@ -140,12 +169,18 @@ export default function CheckoutPage() {
                 <p className="text-xs text-gray-400">Stripe test mode — no real charge</p>
               </div>
 
+              {error && (
+                <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4">
+                  {error}
+                </p>
+              )}
+
               <button
                 onClick={handlePay}
                 disabled={processing}
                 className="w-full bg-green-700 text-white font-bold py-3 rounded-lg hover:bg-green-800 transition-colors disabled:opacity-60"
               >
-                {processing ? "Processing..." : `Pay USD $${total.toFixed(2)}`}
+                {processing ? 'Processing...' : `Pay USD $${total.toFixed(2)}`}
               </button>
             </div>
           </div>
@@ -164,7 +199,7 @@ function CartItemRow({
   onRemove: () => void;
   onQty: (delta: number) => void;
 }) {
-  if (item.type === "product") {
+  if (item.type === 'product') {
     return (
       <div className="bg-white border border-gray-200 rounded-xl p-4 flex items-center gap-4">
         <div className="w-14 h-14 bg-green-50 rounded-lg flex items-center justify-center text-2xl shrink-0">
