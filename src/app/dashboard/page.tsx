@@ -62,8 +62,8 @@ export default async function DashboardPage() {
             </div>
             <div>
               <div className="flex justify-between text-xs text-green-200 mb-1 gap-2">
-                <span className="shrink-0">{data.tier}</span>
-                <span className="truncate text-right">
+                <span className="whitespace-nowrap">{data.tier}</span>
+                <span className="min-w-0 truncate text-right">
                   {data.nextTier} ({data.nextTierThreshold} pts)
                 </span>
               </div>
