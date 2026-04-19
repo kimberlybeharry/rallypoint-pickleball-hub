@@ -55,6 +55,7 @@ export default function BookingGrid({
   const [selectedDate, setSelectedDate] = useState<string>(formatDate(today));
   const [added, setAdded] = useState<Record<string, boolean>>({});
   const [holding, setHolding] = useState<Record<string, boolean>>({});
+  const [selectedCourt, setSelectedCourt] = useState<string>(() => courts[0]?.id ?? '');
   const [, startTransition] = useTransition();
   const { addBooking, items } = useCart();
 
@@ -166,8 +167,74 @@ export default function BookingGrid({
 
       {/* Slots grid */}
       <h2 className="font-semibold text-gray-800 mb-4">{displayDate}</h2>
-      <p className="sm:hidden text-xs text-gray-400 mb-2">Scroll right to see all courts</p>
-      <div className="overflow-x-auto">
+
+      {/* Mobile: court tabs + vertical slot list */}
+      <div className="sm:hidden">
+        <div className="flex gap-2 mb-5">
+          {courts.map((court) => (
+            <button
+              key={court.id}
+              type="button"
+              onClick={() => setSelectedCourt(court.id)}
+              className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                selectedCourt === court.id
+                  ? 'bg-green-700 text-white'
+                  : 'bg-white border border-gray-300 text-gray-600 hover:border-green-500'
+              }`}
+            >
+              {court.name}
+            </button>
+          ))}
+        </div>
+        <div className="divide-y divide-gray-100">
+          {TIME_SLOTS.map((slot) => {
+            const court = courts.find((c) => c.id === selectedCourt);
+            if (!court) return null;
+            const booked = isBooked(court.id, slot.time);
+            const inCart = isInCart(court.id, slot.time);
+            const justAdded = added[slotKey(court.id, slot.time)];
+            const isHolding = holding[slotKey(court.id, slot.time)];
+            return (
+              <div key={slot.time} className="flex items-center gap-4 py-3">
+                <span className="text-sm font-medium text-gray-600 w-20 shrink-0">
+                  {slot.label}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleBook(court.id, court.name, slot.time, slot.label)}
+                  disabled={booked || inCart || isHolding}
+                  className={`flex-1 py-3 rounded-lg text-sm font-semibold transition-colors ${
+                    booked
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : inCart || justAdded
+                        ? 'bg-green-100 text-green-700 cursor-default'
+                        : isHolding
+                          ? 'bg-green-50 text-green-500 cursor-wait'
+                          : 'bg-green-50 text-green-700 active:bg-green-700 active:text-white'
+                  }`}
+                >
+                  {booked ? (
+                    'Booked'
+                  ) : inCart ? (
+                    <span className="flex items-center justify-center gap-1">
+                      <Check size={14} /> In cart
+                    </span>
+                  ) : isHolding ? (
+                    <span className="flex items-center justify-center gap-1">
+                      <Loader2 size={14} className="animate-spin" /> Holding...
+                    </span>
+                  ) : (
+                    '$15 — Book'
+                  )}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Desktop: full cross-court table */}
+      <div className="hidden sm:block overflow-x-auto">
         <table className="w-full min-w-[600px] border-collapse">
           <thead>
             <tr>
