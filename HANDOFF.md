@@ -34,9 +34,9 @@ Before writing any code, read these files from the CTS Classes repo to build ful
 
 ## 1. What This Project Is
 
-RallyPoint Pickleball Hub is a **Next.js 16 prototype** for a pickleball court booking, equipment store, and loyalty rewards platform -- set in Trinidad and Tobago. It was built as Kimberly Beharry's **AIT (Advanced Information Technology) Assignment 2** submission (student ID 2435447, course CIS041-3).
+RallyPoint Pickleball Hub is a **Next.js 16 full-stack application** for a pickleball court booking, equipment store, and loyalty rewards platform -- set in Trinidad and Tobago. It was built as Kimberly Beharry's **AIT (Advanced Information Technology) Assignment 2** submission (student ID 2435447, course CIS041-3).
 
-The app is a **frontend-only prototype** with mock data. There is no database, no real payment processing, and no authentication. All state lives in React context + localStorage.
+The app has a **PostgreSQL database (Neon)**, **NextAuth v5 authentication** (Google OAuth + credentials with bcrypt), **Prisma 7 ORM** with 13+ models, **server actions** for all mutations, **Stripe test mode** for payment, **Resend transactional email**, and a **content-based recommendation engine**. Cart state is persisted server-side in a CartItem table.
 
 **Live URL**: https://rallypoint-pickleball-hub.vercel.app
 **GitHub**: https://github.com/kimberlybeharry/rallypoint-pickleball-hub (public)
@@ -51,13 +51,20 @@ The app is a **frontend-only prototype** with mock data. There is no database, n
 | Next.js | 16.2.4 | App Router, `src/` directory layout |
 | React | 19.2.4 | |
 | TypeScript | ^5 | Strict mode enabled |
-| Tailwind CSS | ^4 | Via `@tailwindcss/postcss` plugin (NOT the older `tailwindcss` config approach) |
-| lucide-react | ^1.8.0 | Icons (ShoppingCart, Check, Calendar, etc.) |
+| Tailwind CSS | ^4 | Via `@tailwindcss/postcss` plugin |
+| Prisma | 7 | ORM with 13+ models, interactive transactions |
+| @neondatabase/serverless | latest | Neon PostgreSQL adapter |
+| NextAuth v5 | latest | Google OAuth + credentials, PrismaAdapter, JWT sessions |
+| bcryptjs | latest | Password hashing for credentials auth |
+| Stripe | latest | Payment processing (test mode) |
+| Resend | latest | Transactional email (booking/order/cancellation) |
+| Zod | latest | Input validation schemas |
+| lucide-react | ^1.8.0 | Icons |
 | PostCSS | via `postcss.config.mjs` | Only plugin is `@tailwindcss/postcss` |
 | ESLint | ^9 | Using `eslint-config-next` flat config |
 | Node.js | 24.x | Set in Vercel project settings |
 
-**No backend, no database, no API routes, no environment variables needed.**
+**Environment variables required:** DATABASE_URL, AUTH_SECRET, AUTH_GOOGLE_ID, AUTH_GOOGLE_SECRET, STRIPE_SECRET_KEY, NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY, RESEND_API_KEY.
 
 ---
 
@@ -415,29 +422,35 @@ npm run build
 
 ## 11. Known Limitations and Enhancement Opportunities
 
-### Current Limitations (by design -- it is a prototype)
+### Current Limitations
 
-1. **No real images** -- Products use emoji placeholders in coloured squares
-2. **No authentication** -- Dashboard shows hardcoded user data
-3. **No database** -- All data is in-memory constants
-4. **No real payments** -- Mock Stripe card, no actual charge
-5. **Pre-booked slots are static** -- The 7 booked slots never change
-6. **Points do not persist** -- Dashboard always shows 450 pts regardless of purchases
-7. **No mobile hamburger menu** -- Mobile nav is a horizontal scroll bar
-8. **No loading states** -- Pages render instantly from static data
-9. **Product images are emoji** -- No actual product photography
+1. **Seeded demonstration data** -- Products and courts use seed data; production data population pending operator onboarding
+2. **Stripe in test mode** -- Test card (4242...) works; no live payment processing
+3. **Content-based recommendations only** -- Collaborative filtering requires production user data
+4. **No SMS notifications** -- Planned for Semester 2
+5. **Product images are emoji** -- No actual product photography
+6. **No automated accessibility audit** -- WCAG 2.1 AA compliance not formally verified
 
-### Enhancement Ideas (if Stephen wants to evolve it)
+### Resolved (previously listed as limitations)
 
-1. **Add real product images** -- Replace emoji placeholders with actual photos in `/public/products/`
-2. **Database integration** -- Supabase or Prisma + PostgreSQL for real bookings and user accounts
-3. **Authentication** -- NextAuth v5 with credentials or OAuth
-4. **Real Stripe** -- Replace mock card with Stripe Elements checkout
-5. **Dynamic booking** -- API routes to check real-time court availability
-6. **Admin panel** -- Manage courts, products, view bookings
-7. **Email confirmations** -- Booking and purchase confirmation emails
-8. **Search improvements** -- Fuzzy search, sort by price/name
-9. **PWA** -- Add a manifest and service worker for mobile install
+1. ~~No authentication~~ -- NextAuth v5 with Google OAuth + credentials (bcrypt)
+2. ~~No database~~ -- PostgreSQL (Neon) with Prisma 7, 13+ models
+3. ~~No real payments~~ -- Stripe integration with PaymentIntent fields (test mode)
+4. ~~Pre-booked slots are static~~ -- Dynamic slot management with AVAILABLE/HELD/BOOKED states
+5. ~~Points do not persist~~ -- PointsEvent ledger with real progression
+6. ~~No admin panel~~ -- /admin route with product management and booking overview
+7. ~~No email confirmations~~ -- Resend integration for booking, order, and cancellation emails
+
+### Enhancement Ideas (for Semester 2 Undergraduate Project)
+
+1. **Add real product images** -- Replace emoji placeholders with actual photos
+2. **Live Stripe** -- Move from test mode to production payment processing with TTD currency
+3. **Collaborative filtering** -- Activate as user interaction data accumulates
+4. **SMS notifications** -- Booking confirmations and reminders
+5. **Heuristic evaluation** -- Nielsen's 10 heuristics usability testing
+6. **Admin analytics** -- Dashboard with booking/revenue reports and CSV export
+7. **Load testing** -- Verify concurrent booking slot contention under load
+8. **PWA** -- Add a manifest and service worker for mobile install
 
 ---
 
