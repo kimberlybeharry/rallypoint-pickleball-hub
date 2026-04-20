@@ -116,6 +116,45 @@ async function main() {
   });
   console.log('Created challenge: 3 Bookings This Month');
 
+  // Demo accounts (password: RallyPoint2026!)
+  const demoHash = '$2b$12$V1hk55r8PseosDZF.S3GDOKYbaoiUw5qZBOQcIAVbLVIU2b.WnB.a';
+
+  const demoCustomer = await prisma.user.upsert({
+    where: { email: 'kimberly.demo@rallypoint.tt' },
+    update: {},
+    create: {
+      name: 'Kimberly Demo',
+      email: 'kimberly.demo@rallypoint.tt',
+      passwordHash: demoHash,
+      role: 'CUSTOMER',
+      points: 1000,
+    },
+  });
+  console.log(`Demo customer: ${demoCustomer.email}`);
+
+  // Create referral code for demo customer
+  await prisma.referral.upsert({
+    where: { code: 'KIMBERLY-DEMO' },
+    update: {},
+    create: {
+      code: 'KIMBERLY-DEMO',
+      senderId: demoCustomer.id,
+    },
+  });
+
+  const demoAdmin = await prisma.user.upsert({
+    where: { email: 'admin@rallypoint.tt' },
+    update: {},
+    create: {
+      name: 'Admin',
+      email: 'admin@rallypoint.tt',
+      passwordHash: demoHash,
+      role: 'ADMIN',
+      points: 0,
+    },
+  });
+  console.log(`Demo admin: ${demoAdmin.email}`);
+
   console.log('Done.');
 }
 
